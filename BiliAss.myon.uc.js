@@ -6,7 +6,8 @@ var bilibili = {
     font: "微软雅黑", //字体
     font_size: 30,   //字体大小
     lineCount: 50,    //弹幕最大行数
-    speed: 16         //弹幕速度（秒），越小越快
+    speed: 16,         //弹幕速度（秒），越小越快
+    alpha: 150,        //透明度,256为全透明，0为不透明
   },
   //初始化，添加右键菜单
   init: function(){
@@ -243,7 +244,7 @@ var bilibili = {
       var ef = "\\pos(" + move1 + ", " + move24 + ")";
     }
     return "Dialogue: " + layer + "," + this.formatTime(start) + "," + this.formatTime(end) 
-      + ",Danmaku,,0000,0000,0000,,{" + ef + "\\c&H" + color + "}" + text;
+      + ",Danmaku,,0000,0000,0000,,{" + ef + "\\c&H" + color + "\\alpha&H"+ this.config.alpha.toString(16) +"}" + text;
   },
   //格式化字幕开始和结束时间0:00:00.00
   //@param seconds 秒
