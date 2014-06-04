@@ -1,3 +1,14 @@
+// ==UserScript==
+// @name        BiliAss
+// @namespace   Myon
+// @description bilibili弹幕转换成ass字幕
+// @include     *
+// @author      Myon<myon.cn@gmail.com>
+// @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
+// @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
+// @version     0.1.1
+// ==/UserScript==
+
 var bilibili = {
   //配置信息
   config: {
@@ -6,8 +17,9 @@ var bilibili = {
     font: "微软雅黑", //字体
     font_size: 30,   //字体大小
     lineCount: 50,    //弹幕最大行数
-    speed: 16,         //弹幕速度（秒），越小越快
-    alpha: 150,        //透明度,256为全透明，0为不透明
+    speed: 12,         //弹幕速度（秒），越小越快
+    fixedSpeed: 4,     //顶端/底部弹幕速度（秒），越小越快
+    alpha: 140,        //透明度,256为全透明，0为不透明
   },
   //初始化，添加右键菜单
   init: function(){
@@ -127,7 +139,7 @@ var bilibili = {
       var move3 = 0 - text.length * this.config.font_size / 2;
       var color = parseInt(dsa[0][3]).toString(16);
       
-      //移动弹幕
+      //移动弹幕处理
       if(dsa[0][1] < 4){
         var tLine = this.getLine(dsArray,i,1,start);
         if(tLine != -1){
@@ -140,13 +152,13 @@ var bilibili = {
         //对屏幕高度取余，避免超出屏幕
         move24 = move24 * (line % this.config.lineCount) % this.config.PlayResY;
       }
-      //固定弹幕
+      //固定弹幕处理
       else if(dsa[0][1] == 4 || dsa[0][1] == 5){
         type = 2;
         layer = -2;
         move1 = this.config.PlayResX/2;
-        end = start + this.config.speed/2;
-        //底部弹幕
+        end = start + this.config.fixedSpeed;
+        //底部弹幕处理
         if(dsa[0][1] == 4){
           var tLine = this.getLine(dsArray,i,2,start);
           if(tLine != -1){
@@ -157,7 +169,7 @@ var bilibili = {
           }
           move24 = this.config.PlayResY - line * this.config.font_size;
         }
-        //顶部弹幕
+        //顶部弹幕处理
         if(dsa[0][1] == 5){
           var tLine = this.getLine(dsArray,i,3,start);
           if(tLine != -1){
@@ -215,18 +227,33 @@ var bilibili = {
         }
     }
     if(lines.length){
-      var time_ = 3;
-      if(type == 2 | type == 3){
-        time_ = 2;
-        line = lines[0][2] + 1;
-      }
+      line = lines[0][2] + 1;
       //获得最终line
       for(var k=0;k<lines.length;k++){
-        if(start - parseFloat(lines[k][0][0]) < this.config.speed/time_){
-          // lines.splice(k,1);
-        }
-        else if(line > lines[k][2]){
+        var pStart = parseFloat(lines[k][0][0]);
+        //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
+        if(type != 1 && start - pStart > this.config.fixedSpeed
+          &&line > lines[k][2]){
           line = lines[k][2];
+        }
+        //滚动弹幕处理
+        //算法：在满足不重叠条件的行中选择最小的行插入
+        else{
+          //待比较弹幕首次完全显示在屏幕的时间
+          var time1 = pStart + this.config.speed - this.config.speed * (this.config.PlayResX 
+            - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
+            + lines[k][1].length*this.config.font_size/2);
+          //待比较弹幕完全消失在屏幕的时间
+          var time2 = pStart + this.config.speed - this.config.speed * (0 
+            - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
+            + lines[k][1].length*this.config.font_size/2);
+          //当前弹幕最后一刻完全显示在屏幕的时间
+          var time3 = start + this.config.speed - this.config.speed 
+            * (dsArray[i][1].length*this.config.font_size/2) / (this.config.PlayResX 
+            + dsArray[i][1].length*this.config.font_size/2);
+          if(start-time1>0 && time2 < time3){
+            line = lines[k][2];
+          }
         }
       }
     }
@@ -295,6 +322,24 @@ function addItem(option){
     item.setAttribute(key, option[key]);
   }
   cacm.insertBefore(item,document.getElementById("context-sendimage"));
+}
+//获取文本所占像素宽度
+//@warn 由于不断插入删除节点效率太低暂时弃用
+//@param text 文本
+//@param size 字体大小
+//@return int
+//@ref  genDanmakuEvents getLine
+function getTextPxWidth(text,size){
+  if(!size){
+    size = bilibili.config.font_size;
+  }
+  var a = content.document.createElement('span');
+  a.innerHTML = text;
+  a.style = "visibility: block; white-space: nowrap;font-size:"+ size +"px;";
+  content.document.body.appendChild(a);
+  var length = a.offsetWidth;
+  content.document.body.removeChild(a);
+  return length;
 }
 
 //执行
