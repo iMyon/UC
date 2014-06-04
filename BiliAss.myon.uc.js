@@ -41,21 +41,17 @@ var bilibili = {
     }
     var http = new XMLHttpRequest();
     var url = xmlUrl;
-    http.open("get", url, true);
-
-    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    http.setRequestHeader("Connection", "close");
+    http.open("GET", url, true);
 
     http.onreadystatechange = function() {
         if(http.readyState == 4 && http.status == 200) {
           var ds = http.responseXML.getElementsByTagName('d');
-          //讲dom collection对象存入数组
-          var dsArray = [];
-          for(var i=0;i<ds.length; i++){
-            dsArray.push([ds[i].getAttribute("p").split(","),ds[i].innerHTML]);
-          }
+          //将dom collection对象存入数组
+          var dsArray = Array.apply(Array, ds).map(function (line) {
+            return [line.getAttribute('p').split(','), line.textContent];
+          })
           //递增排序
-          dsArray.sort(function(a,b){
+          .sort(function(a,b){
             return parseFloat(a[0][0]) > parseFloat(b[0][0]);
           });
           try{
@@ -97,13 +93,13 @@ var bilibili = {
       var bofqi = content.document.querySelector("#bofqi embed");
       if(bofqi){
         a = bofqi.getAttribute("flashvars");
-        matches = a.match(/cid=((\d)+)&/);
+        matches = a.match(/cid=(\d+)/);
       }
       //非会员视频
       else{
         bofqi = content.document.querySelector("#bofqi iframe");
         a = bofqi.getAttribute("src");
-        matches = a.match(/cid=((\d)+)&/);
+        matches = a.match(/cid=(\d+)/);
       }
     }
     if(!matches){
@@ -163,7 +159,7 @@ var bilibili = {
         line = this.getLine(dsArray,i,1,start);
         //对lineCount取余，限制屏幕行数,不超过限制的话没行一条弹幕，
         //对屏幕高度取余，避免超出屏幕
-        move24 = move24 * (line % this.config.lineCount) % this.config.PlayResY;
+        move24 = move24 * line;
       }
       //固定弹幕处理
       else if(dsa[0][1] == 4 || dsa[0][1] == 5){
@@ -190,6 +186,8 @@ var bilibili = {
       //给array添加个line标记
       dsArray[i][2] = line;
       preLine = line;
+      //抛弃超出范围的弹幕
+      if (line > this.config.lineCount || line * this.config.font_size > this.config.PlayResY) continue;
       contents = contents + this.genEvent(layer,start,end,type,move1,move24,move3,color,text) + "\n";
     }
     return contents;
@@ -301,10 +299,12 @@ var bilibili = {
   //@ref  genDanmakuEvents
   //@return string
   formatTime: function(seconds){
+    var cs = ~~(100 * (seconds - ~~seconds));
     var ss = seconds % 60;
-    var mm = parseInt(seconds/60) % 60;
-    var hh = parseInt(seconds/60/60) % 60;
-    return this.prefixInteger(hh,2) + ":" + this.prefixInteger(mm,2) + ":" + ss.toFixed(2);
+    var mm = ~~(seconds/60) % 60;
+    var hh = ~~(seconds/60/60);
+    return hh + ":" + this.prefixInteger(mm, 2) + ":" +
+      this.prefixInteger(ss, 2) + '.' + this.prefixInteger(cs, 2);
   },
   //位数补全，补全数字前置的0
   //@param num 要补全的数字
@@ -312,7 +312,8 @@ var bilibili = {
   //@ref formatTime
   //@return string
   prefixInteger: function(num, length) {
-    return (num / Math.pow(10, length)).toFixed(length).substr(2);
+    num = '' + (num ^ 0);
+    return Array(length + 1 - num.length).join('0') + num;
   }
 };
 function writeFile(filepath, data, override) {
