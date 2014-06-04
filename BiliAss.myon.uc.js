@@ -6,7 +6,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     0.1.1
+// @version     0.1.2
 // ==/UserScript==
 
 var bilibili = {
@@ -157,7 +157,7 @@ var bilibili = {
           line = tLine;
         }
         else if(i>0){
-          line = dsArray[i-1][2]+1;
+          line = 1;
         }
         //对lineCount取余，限制屏幕行数,不超过限制的话没行一条弹幕，
         //对屏幕高度取余，避免超出屏幕
@@ -242,28 +242,31 @@ var bilibili = {
       //获得最终line
       for(var k=0;k<lines.length;k++){
         var pStart = parseFloat(lines[k][0][0]);
-        //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
-        if(type != 1 && start - pStart > this.config.fixedSpeed
-          &&line > lines[k][2]){
-          line = lines[k][2];
-        }
-        //滚动弹幕处理
-        //算法：在满足不重叠条件的行中选择最小的行插入
-        else{
-          //待比较弹幕首次完全显示在屏幕的时间
-          var time1 = pStart + this.config.speed - this.config.speed * (this.config.PlayResX 
-            - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
-            + lines[k][1].length*this.config.font_size/2);
-          //待比较弹幕完全消失在屏幕的时间
-          var time2 = pStart + this.config.speed - this.config.speed * (0 
-            - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
-            + lines[k][1].length*this.config.font_size/2);
-          //当前弹幕最后一刻完全显示在屏幕的时间
-          var time3 = start + this.config.speed - this.config.speed 
-            * (dsArray[i][1].length*this.config.font_size/2) / (this.config.PlayResX 
-            + dsArray[i][1].length*this.config.font_size/2);
-          if(start-time1>0 && time2 < time3){
-            line = lines[k][2];
+        if(line > lines[k][2]){
+          //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
+          if(type != 1){
+            if(start - pStart > this.config.fixedSpeed){
+              line = lines[k][2];
+            }
+          }
+          //滚动弹幕处理
+          //算法：在满足不重叠条件的行中选择最小的行插入
+          else{
+            //待比较弹幕首次完全显示在屏幕的时间
+            var time1 = pStart + this.config.speed - this.config.speed * (this.config.PlayResX 
+              - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
+              + lines[k][1].length*this.config.font_size/2);
+            //待比较弹幕完全消失在屏幕的时间
+            var time2 = pStart + this.config.speed - this.config.speed * (0 
+              - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
+              + lines[k][1].length*this.config.font_size/2);
+            //当前弹幕最后一刻完全显示在屏幕的时间
+            var time3 = start + this.config.speed - this.config.speed 
+              * (dsArray[i][1].length*this.config.font_size/2) / (this.config.PlayResX 
+              + dsArray[i][1].length*this.config.font_size/2);
+            if(start-time1>0 && time2 < time3){
+              line = lines[k][2];
+            }
           }
         }
       }
