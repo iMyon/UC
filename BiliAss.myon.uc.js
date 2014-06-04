@@ -1,8 +1,9 @@
 // ==UserScript==
+// @charset     UTF-8
 // @name        BiliAss
 // @namespace   Myon
 // @description bilibili弹幕转换成ass字幕
-// @include     *
+// @include     chrome://browser/content/browser.xul
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
@@ -109,7 +110,7 @@ var bilibili = {
       alert("获取cid失败");
       throw -1;
     }
-    return "http://comment.bilibili.cn/"+ matches[1] +".xml"
+    return "http://comment.bilibili.cn/"+ matches[1] +".xml";
   },
   //转换弹幕
   //@ref convert
