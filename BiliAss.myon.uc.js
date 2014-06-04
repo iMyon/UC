@@ -6,7 +6,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     0.1.2
+// @version     0.1.3
 // ==/UserScript==
 
 var bilibili = {
@@ -152,13 +152,7 @@ var bilibili = {
       
       //移动弹幕处理
       if(dsa[0][1] < 4){
-        var tLine = this.getLine(dsArray,i,1,start);
-        if(tLine != -1){
-          line = tLine;
-        }
-        else if(i>0){
-          line = 1;
-        }
+        line = this.getLine(dsArray,i,1,start);
         //对lineCount取余，限制屏幕行数,不超过限制的话没行一条弹幕，
         //对屏幕高度取余，避免超出屏幕
         move24 = move24 * (line % this.config.lineCount) % this.config.PlayResY;
@@ -171,24 +165,12 @@ var bilibili = {
         end = start + this.config.fixedSpeed;
         //底部弹幕处理
         if(dsa[0][1] == 4){
-          var tLine = this.getLine(dsArray,i,2,start);
-          if(tLine != -1){
-            line = tLine;
-          }
-          else if(i>0){
-            line = 1;
-          }
+          line = this.getLine(dsArray,i,2,start);
           move24 = this.config.PlayResY - line * this.config.font_size;
         }
         //顶部弹幕处理
         if(dsa[0][1] == 5){
-          var tLine = this.getLine(dsArray,i,3,start);
-          if(tLine != -1){
-            line = tLine;
-          }
-          else if(i>0){
-            line = 1;
-          }
+          var line = this.getLine(dsArray,i,3,start);
           move24 = line * this.config.font_size;
         }
       }
@@ -213,7 +195,7 @@ var bilibili = {
   //@return int
   //@ref genDanmakuEvents
   getLine: function(dsArray,i,type,start){
-    var line = -1;
+    var line = 1;
     var lines = [];
     for(var j=i-1;j>=0;j--){
       var if1 = (dsArray[j][0][1] < 4);
@@ -232,42 +214,61 @@ var bilibili = {
           if(is_has == false){
             lines.push(dsArray[j]);
           }
-          if(lines.length==50){
+          if(lines.length==this.config.lineCount){
             break;
           }
         }
     }
+    var is_lastLine = false;
+    //筛选出满足可插入条件的lines
+    for(var k=0;k<lines.length;k++){
+      var pStart = parseFloat(lines[k][0][0]);
+      //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
+      if(type != 1){
+        if(is_lastLine == false){
+          line = lines[k][2] + 1;
+          is_lastLine = true;
+        }
+        if(start - pStart >= this.config.fixedSpeed){
+        }
+        else{
+          lines.splice(k,1);
+          k--;
+        }
+      }
+      //滚动弹幕处理
+      //算法：在满足不重叠条件的行中选择最小的行插入
+      else{
+        if(is_lastLine == false){
+          line = lines[k][2] + 1;
+          is_lastLine = true;
+        }
+        //待比较弹幕首次完全显示在屏幕的时间
+        var time1 = pStart + this.config.speed - this.config.speed * (this.config.PlayResX 
+          - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
+          + lines[k][1].length*this.config.font_size/2);
+        //待比较弹幕完全消失在屏幕的时间
+        var time2 = pStart + this.config.speed - this.config.speed * (0 
+          - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
+          + lines[k][1].length*this.config.font_size/2);
+        //当前弹幕最后一刻完全显示在屏幕的时间
+        var time3 = start + this.config.speed - this.config.speed 
+          * (dsArray[i][1].length*this.config.font_size/2) / (this.config.PlayResX 
+          + dsArray[i][1].length*this.config.font_size/2);
+        if(start-time1>=0 && time2 <= time3){
+        }
+        else{
+          lines.splice(k,1);
+          k--;
+        }
+      }
+    }
     if(lines.length){
-      line = lines[0][2] + 1;
+      line = lines[0][2];
       //获得最终line
       for(var k=0;k<lines.length;k++){
-        var pStart = parseFloat(lines[k][0][0]);
         if(line > lines[k][2]){
-          //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
-          if(type != 1){
-            if(start - pStart > this.config.fixedSpeed){
-              line = lines[k][2];
-            }
-          }
-          //滚动弹幕处理
-          //算法：在满足不重叠条件的行中选择最小的行插入
-          else{
-            //待比较弹幕首次完全显示在屏幕的时间
-            var time1 = pStart + this.config.speed - this.config.speed * (this.config.PlayResX 
-              - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
-              + lines[k][1].length*this.config.font_size/2);
-            //待比较弹幕完全消失在屏幕的时间
-            var time2 = pStart + this.config.speed - this.config.speed * (0 
-              - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
-              + lines[k][1].length*this.config.font_size/2);
-            //当前弹幕最后一刻完全显示在屏幕的时间
-            var time3 = start + this.config.speed - this.config.speed 
-              * (dsArray[i][1].length*this.config.font_size/2) / (this.config.PlayResX 
-              + dsArray[i][1].length*this.config.font_size/2);
-            if(start-time1>0 && time2 < time3){
-              line = lines[k][2];
-            }
-          }
+          line = lines[k][2];
         }
       }
     }
