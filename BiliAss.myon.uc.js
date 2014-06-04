@@ -78,19 +78,30 @@ var bilibili = {
   },
   //获取xml弹幕网址
   getXmlUrl: function(){
-    //先从window[0]获取，如果没有（会员）则找网页节点
-    var a  = content.window[0].location.href;
-    var matches = a.match(/cid=((\d)+)&/);
+    //先从window获取，如果没有（会员）则找网页节点
+    var a  = null;
+    var matches = null;
+    for(var i=0;i<content.window.length;i++){
+      if(!matches){
+        a = content.window[i].location.href;
+        matches = a.match(/cid=((\d)+)&/);
+      }
+      else{
+        break;
+      }
+    }
+    //从网页获取
     if(!(matches && matches.length !=0 )){
       var bofqi = content.document.querySelector("#bofqi embed");
       if(bofqi){
         a = bofqi.getAttribute("flashvars");
-      }
-      else{
-        return false;
+        matches = a.match(/cid=((\d)+)&/);
       }
     }
-    matches = a.match(/cid=((\d)+)&/);
+    if(!matches){
+      alert("获取cid失败");
+      throw -1;
+    }
     return "http://comment.bilibili.cn/"+ matches[1] +".xml"
   },
   //转换弹幕
