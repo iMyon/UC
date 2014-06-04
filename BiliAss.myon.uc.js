@@ -6,7 +6,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     0.1.3
+// @version     0.1.4
 // ==/UserScript==
 
 var bilibili = {
@@ -92,9 +92,16 @@ var bilibili = {
     }
     //从网页获取
     if(!(matches && matches.length !=0 )){
+      //会员视频
       var bofqi = content.document.querySelector("#bofqi embed");
       if(bofqi){
         a = bofqi.getAttribute("flashvars");
+        matches = a.match(/cid=((\d)+)&/);
+      }
+      //非会员视频
+      else{
+        bofqi = content.document.querySelector("#bofqi iframe");
+        a = bofqi.getAttribute("src");
         matches = a.match(/cid=((\d)+)&/);
       }
     }
