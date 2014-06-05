@@ -375,6 +375,9 @@ if (window.location == "chrome://browser/content/browser.xul") {
     bilibili.init();
     document.getElementById("contentAreaContextMenu").addEventListener("popupshowing", function () {
       //满足匹配显示右键菜单，否则隐藏
-      gContextMenu.showItem("context-biliAss", content.location.href.match(/www\.bilibili\.tv\/video\/av\d+/));
+      gContextMenu.showItem("context-biliAss",
+        content.location.href.match(/www\.bilibili\.tv\/video\/av\d+/) ||
+        content.location.href.match(/bilibili\.kankanews\.com\/video\/av\d+/)
+      );
     }, false);
 }
