@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     0.1.4
+// @version     1.0
 // ==/UserScript==
 
 var bilibili = {
@@ -62,7 +62,8 @@ var bilibili = {
             if (!filePicker.show()) {
               var path = filePicker.file.path;
               var filename = content.document.title + '.ass';
-              var file = path + "\\" + filename;
+              //使用path.join 跨平台路径兼容
+              var file = OS.Path.join(path,filename);
               writeFile(file,bilibili.parse(dsArray),true);
               alert("成功写入字幕文件：" + file);
             }
@@ -70,7 +71,7 @@ var bilibili = {
             alert("出错了！\n"+e);
           }
         }
-    }
+    };
     http.send();
   },
   //获取xml弹幕网址
@@ -78,7 +79,7 @@ var bilibili = {
     //先从window获取，如果没有（会员）则找网页节点
     var a  = null;
     var matches = null;
-    for(var i=0;i<content.window.length;i++){
+    for(let i=0;i<content.window.length;i++){
       if(!matches){
         a = content.window[i].location.href;
         matches = a.match(/cid=((\d)+)&/);
@@ -88,7 +89,7 @@ var bilibili = {
       }
     }
     //从网页获取
-    if(!(matches && matches.length !=0 )){
+    if(!(matches && matches.length !==0 )){
       //会员视频
       var bofqi = content.document.querySelector("#bofqi embed");
       if(bofqi){
@@ -108,14 +109,14 @@ var bilibili = {
     }
     return "http://comment.bilibili.cn/"+ matches[1] +".xml";
   },
-  //转换弹幕
+  //转换弹幕 获取字幕文件的最终文本
   //@ref convert
   //@return string
   parse: function(dsArray){
     return this.genDanmakuHeader() + this.genDanmakuEvents(dsArray);
   },
 
-  //生成弹幕文件头部信息
+  //生成字幕文件头部信息
   //@ref parse
   //@return string
   genDanmakuHeader: function(){
@@ -132,7 +133,7 @@ var bilibili = {
       + "\n";
   },
 
-  //生成弹幕event主区域，解析弹幕的主函数
+  //生成字幕event主区域，脚本最关键的函数
   //@ref parse
   //@param  dsArray xml弹幕数组
   //@return string
@@ -140,31 +141,30 @@ var bilibili = {
     var preLine = 0;
     var contents = "[Events]" + "\n"
       + "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n";
-    for(var i=0;i<dsArray.length;i++){
+    for(let i=0;i<dsArray.length;i++){
       var line = preLine +1;     //弹幕计数，用于限制弹幕行数
       dsArray[i][2] = line;
       var dsa = dsArray[i];
       var text = dsa[1];
       var layer = -3;
-      var start = parseInt(dsa[0][0]);
+      var start = ~~dsa[0][0];
       var end = start + this.config.speed;
       var type = 1;
       var move1 = this.config.PlayResX + text.length * this.config.font_size / 2;
       var move24 = this.config.font_size;
       var move3 = 0 - text.length * this.config.font_size / 2;
-      var color = parseInt(dsa[0][3]).toString(16);
+      var color = ~~(dsa[0][3]).toString(16);
       
       //移动弹幕处理
       if(dsa[0][1] < 4){
         line = this.getLine(dsArray,i,1,start);
-        //对lineCount取余，限制屏幕行数,不超过限制的话没行一条弹幕，
-        //对屏幕高度取余，避免超出屏幕
+        //tiansh's version 
         move24 = move24 * line;
       }
       //固定弹幕处理
       else if(dsa[0][1] == 4 || dsa[0][1] == 5){
         type = 2;
-        layer = -2;
+        layer = -2;   //字幕置于稍高层
         move1 = this.config.PlayResX/2;
         end = start + this.config.fixedSpeed;
         //底部弹幕处理
@@ -174,7 +174,7 @@ var bilibili = {
         }
         //顶部弹幕处理
         if(dsa[0][1] == 5){
-          var line = this.getLine(dsArray,i,3,start);
+          line = this.getLine(dsArray,i,3,start);
           move24 = line * this.config.font_size;
         }
       }
@@ -193,7 +193,7 @@ var bilibili = {
     return contents;
   },
 
-  //获取当前应该插入字幕到第几行
+  //获取当前字幕应该第几行
   //@param dsArray  弹幕xml数组
   //@param type     弹幕类型 1滚动 2底部 3 顶部
   //@param i        dsArray下标
@@ -203,35 +203,38 @@ var bilibili = {
   getLine: function(dsArray,i,type,start){
     var line = 1;
     var lines = [];
-    for(var j=i-1;j>=0;j--){
+    //往回遍历，循环结束lines数组得到之前所有line的dsArray元素
+    //就近获取，之后有相同line舍弃，因为和最后一个占领该line的字幕对比才有意义
+    for(let j=i-1;j>=0;j--){
       var if1 = (dsArray[j][0][1] < 4);
       if(type == 2)
         if1 = (dsArray[j][0][1] == 4);
       if(type == 3)
         if1 = (dsArray[j][0][1] == 5);
       if(if1){
-          var is_has = false;
-          for(var k=0;k<lines.length;k++){
+          var is_has = false;   //该行是否已经存在数组中
+          for(let k=0;k<lines.length;k++){
             if(lines[k][2] == dsArray[j][2]){
               is_has = true;
               break;
             }
           }
-          if(is_has == false){
+          if(is_has === false){
             lines.push(dsArray[j]);
           }
-          if(lines.length==this.config.lineCount){
+          //如果已经获取了和配置中最大行数相等的元素，则结束循环
+          if(lines.length>=this.config.lineCount){
             break;
           }
         }
     }
-    var is_lastLine = false;
-    //筛选出满足可插入条件的lines
-    for(var k=0;k<lines.length;k++){
+    var is_lastLine = false;  //标记，如果下面筛选中找不到满足的行，则取line为前一个字幕的行数+1
+    //lines数组二次筛选，选出时间上满足可插入条件的行
+    for(let k=0;k<lines.length;k++){
       var pStart = parseFloat(lines[k][0][0]);
       //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
       if(type != 1){
-        if(is_lastLine == false){
+        if(is_lastLine === false){
           line = lines[k][2] + 1;
           is_lastLine = true;
         }
@@ -243,9 +246,9 @@ var bilibili = {
         }
       }
       //滚动弹幕处理
-      //算法：在满足不重叠条件的行中选择最小的行插入
+      //算法：只取满足不重叠条件的行
       else{
-        if(is_lastLine == false){
+        if(is_lastLine === false){
           line = lines[k][2] + 1;
           is_lastLine = true;
         }
@@ -269,10 +272,11 @@ var bilibili = {
         }
       }
     }
+    //三次筛选，取所有满足条件的line中的最小值
     if(lines.length){
       line = lines[0][2];
       //获得最终line
-      for(var k=0;k<lines.length;k++){
+      for(let k=0;k<lines.length;k++){
         if(line > lines[k][2]){
           line = lines[k][2];
         }
@@ -282,14 +286,14 @@ var bilibili = {
   },
 
   //生产单个event
-  //@ref genDanmakuEvents
-  //@param 和ass名称对应
+  //@ref    genDanmakuEvents
+  //@param  和ass格式的参数对应
   //@param  type 弹幕类型 1为滚动弹幕，2为固定弹幕
   //@return string
   genEvent: function(layer,start,end,type,move1,move24,move3,color,text){
     var ef = "\\move(" + move1 + ", " + move24 + ", " + move3 + ", " + move24 + ")";
     if(type == 2){
-      var ef = "\\pos(" + move1 + ", " + move24 + ")";
+      ef = "\\pos(" + move1 + ", " + move24 + ")";
     }
     return "Dialogue: " + layer + "," + this.formatTime(start) + "," + this.formatTime(end) 
       + ",Danmaku,,0000,0000,0000,,{" + ef + "\\c&H" + color + "\\alpha&H"+ this.config.alpha.toString(16) +"}" + text;
@@ -342,7 +346,7 @@ function addItem(option){
   var cacm = document.getElementById("contentAreaContextMenu");
     if (!cacm) return;
   var item = document.createElement("menuitem");
-  for(var key in option){
+  for(let key in option){
     item.setAttribute(key, option[key]);
   }
   cacm.insertBefore(item,document.getElementById("context-sendimage"));
