@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.0
+// @version     1.0.1
 // ==/UserScript==
 
 var bilibili = {
@@ -138,12 +138,10 @@ var bilibili = {
   //@param  dsArray xml弹幕数组
   //@return string
   genDanmakuEvents: function(dsArray){
-    var preLine = 0;
     var contents = "[Events]" + "\n"
       + "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n";
     for(let i=0;i<dsArray.length;i++){
-      var line = preLine +1;     //弹幕计数，用于限制弹幕行数
-      dsArray[i][2] = line;
+      var line; //字幕插入的行
       var dsa = dsArray[i];
       var text = dsa[1];
       var layer = -3;
@@ -184,8 +182,8 @@ var bilibili = {
       }
 
       //给array添加个line标记
-      dsArray[i][2] = line;
-      preLine = line;
+      //对最大行求余，否则line递增停不下来！
+      dsArray[i][2] = line % this.config.lineCount;
       //抛弃超出范围的弹幕
       if (line > this.config.lineCount || line * this.config.font_size > this.config.PlayResY) continue;
       contents = contents + this.genEvent(layer,start,end,type,move1,move24,move3,color,text) + "\n";
