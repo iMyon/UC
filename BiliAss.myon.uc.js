@@ -151,7 +151,7 @@ var bilibili = {
       var move1 = this.config.PlayResX + text.length * this.config.font_size / 2;
       var move24 = this.config.font_size;
       var move3 = 0 - text.length * this.config.font_size / 2;
-      var color = ~~(dsa[0][3]).toString(16);
+      var color = (~~dsa[0][3]).toString(16);
       
       //移动弹幕处理
       if(dsa[0][1] < 4){
