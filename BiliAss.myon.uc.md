@@ -2,6 +2,8 @@
 转换b站弹幕为ass文件  
 [安装脚本](https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js)  
 
+喜欢user脚本的，可以安装[tiansh](https://github.com/tiansh/)的[us-danmaku](https://github.com/tiansh/us-danmaku)
+
 ###生效页面
 满足`http://www.bilibili.tv/video/avXXX`形式的网页
 
