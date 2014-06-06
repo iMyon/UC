@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.0.1
+// @version     1.0.2
 // ==/UserScript==
 
 var bilibili = {
@@ -24,6 +24,7 @@ var bilibili = {
   },
   //初始化，添加右键菜单
   init: function(){
+    this.config.alpha = this.prefixInteger(this.config.alpha.toString(16),2)
     addItem({
       id: "context-biliAss",
       label: "转换弹幕",
@@ -129,7 +130,7 @@ var bilibili = {
       + "[V4+ Styles]" + "\n"
       + "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding" + "\n"
       + "Style: Default,微软雅黑,54,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0.00,0.00,1,1,0,2,20,20,120,0" + "\n"
-      + "Style: Danmaku,"+ this.config.font + "," + this.config.font_size + ",&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0.00,0.00,1,1,0,2,20,20,20,0" + "\n"
+      + "Style: Danmaku,"+ this.config.font + "," + this.config.font_size + ",&H"+ this.config.alpha +"FFFFFF,&H"+ this.config.alpha +"FFFFFF,&H"+ this.config.alpha +"000000,&H"+ this.config.alpha +"000000,0,0,0,0,100,100,0.00,0.00,1,1,0,2,20,20,20,0" + "\n"
       + "\n";
   },
 
@@ -151,7 +152,8 @@ var bilibili = {
       var move1 = this.config.PlayResX + text.length * this.config.font_size / 2;
       var move24 = this.config.font_size;
       var move3 = 0 - text.length * this.config.font_size / 2;
-      var color = (~~dsa[0][3]).toString(16);
+      var color = this.prefixInteger((~~dsa[0][3]).toString(16),6)
+        .replace(/(.{2})(.{2})(.{2})/,"$3$2$1");
       
       //移动弹幕处理
       if(dsa[0][1] < 4){
@@ -294,7 +296,7 @@ var bilibili = {
       ef = "\\pos(" + move1 + ", " + move24 + ")";
     }
     return "Dialogue: " + layer + "," + this.formatTime(start) + "," + this.formatTime(end) 
-      + ",Danmaku,,0000,0000,0000,,{" + ef + "\\c&H" + color + "\\alpha&H"+ this.config.alpha.toString(16) +"}" + text;
+      + ",Danmaku,,0000,0000,0000,,{" + ef + "\\c&H" + color  +"}" + text;
   },
   //格式化字幕开始和结束时间0:00:00.00
   //@param seconds 秒
@@ -308,13 +310,13 @@ var bilibili = {
     return hh + ":" + this.prefixInteger(mm, 2) + ":" +
       this.prefixInteger(ss, 2) + '.' + this.prefixInteger(cs, 2);
   },
-  //位数补全，补全数字前置的0
-  //@param num 要补全的数字
-  //@param length  总长度
-  //@ref formatTime
+  //位数补全，前置补全0到指定位数
+  //@param num 要补全的数字，可以是int型或string型
+  //@param length  补全后总长度
+  //@ref formatTime genDanmakuEvents
   //@return string
   prefixInteger: function(num, length) {
-    num = '' + (num ^ 0);
+    num = '' + num;
     return Array(length + 1 - num.length).join('0') + num;
   }
 };
