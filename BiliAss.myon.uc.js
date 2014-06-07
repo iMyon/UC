@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.0.3
+// @version     1.1.0
 // ==/UserScript==
 
 var bilibili = {
@@ -25,7 +25,12 @@ var bilibili = {
   },
   //初始化，添加右键菜单
   init: function(){
-    this.config.alpha = this.prefixInteger(this.config.alpha.toString(16),2)
+    //初始化配置
+    this.config.alpha = this.prefixInteger(this.config.alpha.toString(16),2);
+    if(this.config.font_size*this.config.lineCount > this.config.PlayResY){
+      this.config.lineCount = ~~(this.config.PlayResY/this.config.font_size);
+    }
+    //添加菜单
     addItem({
       id: "context-biliAss",
       label: "转换弹幕",
@@ -196,24 +201,35 @@ var bilibili = {
   genDanmakuEvents: function(dsArray){
     var contents = "[Events]" + "\n"
       + "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n";
+    //保存lineCount大小的数组
+    //每个元素保存最后一次出现在行数下标+1的dsArray元素
+    //lineRecords[type][dsaArray[num]] type:0 滚动 1 顶部 2底部
+    var lineRecords = [Array(this.config.lineCount)
+      ,Array(this.config.lineCount)
+      ,Array(this.config.lineCount)];
+
     for(let i=0;i<dsArray.length;i++){
-      var line; //字幕插入的行
       var dsa = dsArray[i];
       var text = dsa[1];
       var layer = -3;
-      var start = ~~dsa[0][0];
-      var end = start + this.config.speed;
       var type = 1;
+      var start = ~~(dsa[0][0]);
+      var end = start + this.config.speed;
       var move1 = this.config.PlayResX + text.length * this.config.font_size / 2;
       var move24 = this.config.font_size;
       var move3 = 0 - text.length * this.config.font_size / 2;
       var color = this.prefixInteger((~~dsa[0][3]).toString(16),6)
         .replace(/(.{2})(.{2})(.{2})/,"$3$2$1");
-      
+
+      //获取字幕插入的行
+      var line = this.getLine(dsa,lineRecords,~~dsa[0][1]);
+      //抛弃超出范围的弹幕
+      if(line === Infinity) continue;
+
+      line++; //数组下标+1
+
       //移动弹幕处理
       if(dsa[0][1] < 4){
-        line = this.getLine(dsArray,i,1,start);
-        //tiansh's version 
         move24 = move24 * line;
       }
       //固定弹幕处理
@@ -224,12 +240,10 @@ var bilibili = {
         end = start + this.config.fixedSpeed;
         //底部弹幕处理
         if(dsa[0][1] == 4){
-          line = this.getLine(dsArray,i,2,start);
-          move24 = this.config.PlayResY - line * this.config.font_size;
+          move24 = this.config.PlayResY - (line-1) * this.config.font_size;
         }
         //顶部弹幕处理
         if(dsa[0][1] == 5){
-          line = this.getLine(dsArray,i,3,start);
           move24 = line * this.config.font_size;
         }
       }
@@ -238,106 +252,62 @@ var bilibili = {
         continue;
       }
 
-      //给array添加个line标记
-      //对最大行求余，否则line递增停不下来！
-      dsArray[i][2] = line % this.config.lineCount;
-      //抛弃超出范围的弹幕
-      if (line > this.config.lineCount || line * this.config.font_size > this.config.PlayResY) continue;
       contents = contents + this.genEvent(layer,start,end,type,move1,move24,move3,color,text) + "\n";
     }
     return contents;
   },
 
-  //获取当前字幕应该第几行
-  //@param dsArray  弹幕xml数组
-  //@param type     弹幕类型 1滚动 2底部 3 顶部
-  //@param i        dsArray下标
-  //@param start    弹幕开始时间
+  //获取当前字幕应该第几行-1（数组下标）
+  //@param dsa      dsArray数组元素
+  //@param type     弹幕类型 1-3滚动 4底部 5顶部
+  //@param lineRecords  记录每行最后一次弹幕元素的数组
   //@return int
   //@ref genDanmakuEvents
-  getLine: function(dsArray,i,type,start){
-    var line = 1;
-    var lines = [];
-    //往回遍历，循环结束lines数组得到之前所有line的dsArray元素
-    //就近获取，之后有相同line舍弃，因为和最后一个占领该line的字幕对比才有意义
-    for(let j=i-1;j>=0;j--){
-      var if1 = (dsArray[j][0][1] < 4);
-      if(type == 2)
-        if1 = (dsArray[j][0][1] == 4);
-      if(type == 3)
-        if1 = (dsArray[j][0][1] == 5);
-      if(if1){
-          var is_has = false;   //该行是否已经存在数组中
-          for(let k=0;k<lines.length;k++){
-            if(lines[k][2] == dsArray[j][2]){
-              is_has = true;
-              break;
-            }
-          }
-          if(is_has === false){
-            lines.push(dsArray[j]);
-          }
-          //如果已经获取了和配置中最大行数相等的元素，则结束循环
-          if(lines.length>=this.config.lineCount){
-            break;
-          }
+  getLine: function(dsa,lineRecords,type){
+    let start = parseFloat(dsa[0][0]);
+    //滚动弹幕
+    if(type <= 3){
+      for(let i=0;i<lineRecords[0].length;i++){
+        if(lineRecords[0][i] === undefined){
+          lineRecords[0][i] = dsa;
+          return i;
         }
-    }
-    var is_lastLine = false;  //标记，如果下面筛选中找不到满足的行，则取line为前一个字幕的行数+1
-    //lines数组二次筛选，选出时间上满足可插入条件的行
-    for(let k=0;k<lines.length;k++){
-      var pStart = parseFloat(lines[k][0][0]);
-      //固定弹幕处理，超过存活时间则记该行为可插入行，取最小值
-      if(type != 1){
-        if(is_lastLine === false){
-          line = lines[k][2] + 1;
-          is_lastLine = true;
-        }
-        if(start - pStart >= this.config.fixedSpeed){
-        }
-        else{
-          lines.splice(k,1);
-          k--;
-        }
-      }
-      //滚动弹幕处理
-      //算法：只取满足不重叠条件的行
-      else{
-        if(is_lastLine === false){
-          line = lines[k][2] + 1;
-          is_lastLine = true;
-        }
+        let pStart = parseFloat(lineRecords[0][i][0][0]);
+        let danmakuLength = lineRecords[0][i][1].length * this.config.font_size;
+
         //待比较弹幕首次完全显示在屏幕的时间
-        var time1 = pStart + this.config.speed - this.config.speed * (this.config.PlayResX 
-          - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
-          + lines[k][1].length*this.config.font_size/2);
+        let time1 = pStart + this.config.speed * danmakuLength/(this.config.PlayResX + danmakuLength);
         //待比较弹幕完全消失在屏幕的时间
-        var time2 = pStart + this.config.speed - this.config.speed * (0 
-          - lines[k][1].length*this.config.font_size/2)/(this.config.PlayResX 
-          + lines[k][1].length*this.config.font_size/2);
+        let time2 = pStart + this.config.speed;
         //当前弹幕最后一刻完全显示在屏幕的时间
-        var time3 = start + this.config.speed - this.config.speed 
-          * (dsArray[i][1].length*this.config.font_size/2) / (this.config.PlayResX 
-          + dsArray[i][1].length*this.config.font_size/2);
-        if(start-time1>=0 && time2 <= time3){
-        }
-        else{
-          lines.splice(k,1);
-          k--;
+        danmakuLength = dsa[1].length * this.config.font_size;
+        let time3 = start + this.config.speed * this.config.PlayResX / (this.config.PlayResX + danmakuLength);
+        if(start>=time1 && time3 >= time2){
+          //覆盖原来的
+          lineRecords[0][i] = dsa;
+          return i;
         }
       }
     }
-    //三次筛选，取所有满足条件的line中的最小值
-    if(lines.length){
-      line = lines[0][2];
-      //获得最终line
-      for(let k=0;k<lines.length;k++){
-        if(line > lines[k][2]){
-          line = lines[k][2];
+    //底部弹幕和顶部弹幕
+    if(type === 4 || type === 5){
+      if(type === 4) var tempNum = 1;
+      if(type === 5) var tempNum = 2;
+      for(let i=0;i<lineRecords[tempNum].length;i++){
+        if(lineRecords[tempNum][i] === undefined){
+          lineRecords[tempNum][i] = dsa;
+          return i;
+        }
+
+        let pStart = parseFloat(lineRecords[tempNum][i][0][0]);
+        if(start - pStart >= this.config.fixedSpeed){
+          lineRecords[tempNum][i] = dsa;
+          return i;
         }
       }
     }
-    return line;
+    //返回无穷大
+    return Infinity;
   },
 
   //生产单个event
