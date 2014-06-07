@@ -35,92 +35,135 @@ var bilibili = {
   //转换函数
   //成功 写入文件
   //失败 抛出异常，弹框提醒
+  //@param  av    视频链接  如果不填则自动获取
   //@param  path 保存路径，如果不填则弹窗选择
   //@param  filename  文件名   如果不填则取网页标题
   //@param  回调函数
   //@ref init
-  convert: function(path,filename,callback){
-    var xmlUrl = this.getXmlUrl();
-    if(!xmlUrl){
-      throw -1;
+  convert: function(av,path,filename,callback){
+    if(!av) av = gContextMenu.linkURL;
+    //获取filename
+    if(!filename){
+      if(gContextMenu.linkURL){
+        filename = gContextMenu.linkURL.match(/av(\d+)/)[1] + ".ass";
+      }
+      else
+        filename = content.document.title + '.ass';
     }
-    var http = new XMLHttpRequest();
-    var url = xmlUrl;
-    http.open("GET", url, true);
+    this.getXmlUrl(function(xmlUrl){
+      if(!xmlUrl){
+        throw -1;
+      }
+  
+      var http = new XMLHttpRequest();
+      var url = xmlUrl;
+      http.open("GET", url, true);
 
-    http.onreadystatechange = function() {
-        if(http.readyState == 4 && http.status == 200) {
-          var ds = http.responseXML.getElementsByTagName('d');
-          //将dom collection对象存入数组
-          var dsArray = Array.apply(Array, ds).map(function (line) {
-            return [line.getAttribute('p').split(','), line.textContent];
-          })
-          //递增排序
-          .sort(function(a,b){
-            return parseFloat(a[0][0]) > parseFloat(b[0][0]);
-          });
-          try{
-            if(!filename) filename = content.document.title + '.ass';
-            if(!path){
-              var filePicker = Cc["@mozilla.org/filepicker;1"]
-                .createInstance(Ci.nsIFilePicker);
-              filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
-              if (!filePicker.show()) {
-                path = filePicker.file.path;
+      http.onreadystatechange = function() {
+          if(http.readyState == 4 && http.status == 200) {
+            var ds = http.responseXML.getElementsByTagName('d');
+            //将dom collection对象存入数组
+            var dsArray = Array.apply(Array, ds).map(function (line) {
+              return [line.getAttribute('p').split(','), line.textContent];
+            })
+            //递增排序
+            .sort(function(a,b){
+              return parseFloat(a[0][0]) > parseFloat(b[0][0]);
+            });
+            try{
+              if(!path){
+                var filePicker = Cc["@mozilla.org/filepicker;1"]
+                  .createInstance(Ci.nsIFilePicker);
+                filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
+                if (!filePicker.show()) {
+                  path = filePicker.file.path;
+                }
+                else{
+                  throw "获取路径失败";
+                }
               }
-              else{
-                throw "获取路径失败";
-              }
+              
+              //过滤win下文件名特殊字符
+              filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
+              //使用path.join 跨平台路径兼容
+              var file = OS.Path.join(path,filename);
+              writeFile(file,bilibili.parse(dsArray),true);
+              // alert("成功写入字幕文件：" + file);
+              callback && callback(file);
+            }catch(e){
+              alert("出错了！\n"+e);
             }
-            
-            //过滤win下文件名特殊字符
-            filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
-            //使用path.join 跨平台路径兼容
-            var file = OS.Path.join(path,filename);
-            writeFile(file,bilibili.parse(dsArray),true);
-            // alert("成功写入字幕文件：" + file);
-            callback && callback(file);
-          }catch(e){
-            alert("出错了！\n"+e);
           }
-        }
-    };
-    http.send();
+      };
+      http.send();
+    },av);
+      
   },
   //获取xml弹幕网址
-  getXmlUrl: function(){
-    //先从window获取，如果没有（会员）则找网页节点
-    var a  = null;
-    var matches = null;
-    for(let i=0;i<content.window.length;i++){
+  //@param url  视频网址，留空的话取当前网页链接
+  //@param callback 获取xml后的回调函数
+  getXmlUrl: function(callback,url){
+    //获取当前窗口的xml
+    if(!url){
+      //先从window获取，如果没有（会员）则找网页节点
+      var a  = null;
+      var matches = null;
+      for(let i=0;i<content.window.length;i++){
+        if(!matches){
+          a = content.window[i].location.href;
+          matches = a.match(/cid=((\d)+)&/);
+        }
+        else{
+          break;
+        }
+      }
+      //从网页获取
+      if(!(matches && matches.length !==0 )){
+        //会员视频
+        var bofqi = content.document.querySelector("#bofqi embed");
+        if(bofqi){
+          a = bofqi.getAttribute("flashvars");
+          matches = a.match(/cid=(\d+)/);
+        }
+        //非会员视频
+        else{
+          bofqi = content.document.querySelector("#bofqi iframe");
+          a = bofqi.getAttribute("src");
+          matches = a.match(/cid=(\d+)/);
+        }
+      }
       if(!matches){
-        a = content.window[i].location.href;
-        matches = a.match(/cid=((\d)+)&/);
+        alert("获取cid失败");
+        throw -1;
       }
-      else{
-        break;
+      var xml = "http://comment.bilibili.cn/"+ matches[1] +".xml";
+      callback(xml);
+    }
+    //获取当前链接的弹幕xml
+    else{
+      var matches = url.match(/av(\d+)/);
+      if(matches){
+        var aid = matches[1];
+        var http = new XMLHttpRequest();
+        var url = "http://www.bilibili.tv/widget/getPageList?aid=" + aid;
+        http.open("GET", url, true);
+        http.onreadystatechange = function() {
+          if(http.readyState == 4 && http.status == 200) {
+            var jsonA = JSON.parse(http.responseText);
+            if(jsonA.length){
+              var cid = jsonA[0].cid;
+              var xml = "http://comment.bilibili.cn/"+ cid +".xml";
+              callback(xml);
+            }
+            else{
+              alert("获取cid失败");
+              throw -1;
+            }
+          }
+        }
+        http.send();
       }
     }
-    //从网页获取
-    if(!(matches && matches.length !==0 )){
-      //会员视频
-      var bofqi = content.document.querySelector("#bofqi embed");
-      if(bofqi){
-        a = bofqi.getAttribute("flashvars");
-        matches = a.match(/cid=(\d+)/);
-      }
-      //非会员视频
-      else{
-        bofqi = content.document.querySelector("#bofqi iframe");
-        a = bofqi.getAttribute("src");
-        matches = a.match(/cid=(\d+)/);
-      }
-    }
-    if(!matches){
-      alert("获取cid失败");
-      throw -1;
-    }
-    return "http://comment.bilibili.cn/"+ matches[1] +".xml";
   },
   //转换弹幕 获取字幕文件的最终文本
   //@ref convert
@@ -389,7 +432,9 @@ if (window.location == "chrome://browser/content/browser.xul") {
       //满足匹配显示右键菜单，否则隐藏
       gContextMenu.showItem("context-biliAss",
         content.location.href.match(/www\.bilibili\.tv\/video\/av\d+/) ||
-        content.location.href.match(/bilibili\.kankanews\.com\/video\/av\d+/)
+        content.location.href.match(/bilibili\.kankanews\.com\/video\/av\d+/) ||
+        gContextMenu.linkURL.match(/www\.bilibili\.tv\/video\/av\d+/) ||
+        gContextMenu.linkURL.match(/bilibili\.kankanews\.com\/video\/av\d+/)
       );
     }, false);
 }
