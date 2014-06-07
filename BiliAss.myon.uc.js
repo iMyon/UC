@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.0.2
+// @version     1.0.3
 // ==/UserScript==
 
 var bilibili = {
@@ -16,10 +16,11 @@ var bilibili = {
     PlayResX: 1440,   //分辨率 宽
     PlayResY: 900,    //分辨率 高
     font: "微软雅黑", //字体
-    font_size: 30,   //字体大小
+    bold: true,       //是否加粗
+    font_size: 30,    //字体大小
     lineCount: 50,    //弹幕最大行数
-    speed: 12,         //弹幕速度（秒），越小越快
-    fixedSpeed: 4,     //顶端/底部弹幕速度（秒），越小越快
+    speed: 12,         //滚动弹幕驻留时间（秒），越小越快
+    fixedSpeed: 4,     //顶端/底部弹幕驻留时间（秒），越小越快
     alpha: 140,        //透明度,256为全透明，0为不透明
   },
   //初始化，添加右键菜单
@@ -34,8 +35,11 @@ var bilibili = {
   //转换函数
   //成功 写入文件
   //失败 抛出异常，弹框提醒
+  //@param  path 保存路径，如果不填则弹窗选择
+  //@param  filename  文件名   如果不填则取网页标题
+  //@param  回调函数
   //@ref init
-  convert: function(){
+  convert: function(path,filename,callback){
     var xmlUrl = this.getXmlUrl();
     if(!xmlUrl){
       throw -1;
@@ -56,18 +60,24 @@ var bilibili = {
             return parseFloat(a[0][0]) > parseFloat(b[0][0]);
           });
           try{
-            //写入文件
-            var filePicker = Cc["@mozilla.org/filepicker;1"]
-              .createInstance(Ci.nsIFilePicker);
-            filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
-            if (!filePicker.show()) {
-              var path = filePicker.file.path;
-              var filename = content.document.title + '.ass';
-              //使用path.join 跨平台路径兼容
-              var file = OS.Path.join(path,filename);
-              writeFile(file,bilibili.parse(dsArray),true);
-              alert("成功写入字幕文件：" + file);
+            if(!filename) filename = content.document.title + '.ass';
+            if(!path){
+              var filePicker = Cc["@mozilla.org/filepicker;1"]
+                .createInstance(Ci.nsIFilePicker);
+              filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
+              if (!filePicker.show()) {
+                path = filePicker.file.path;
+              }
+              else{
+                throw "获取路径失败";
+              }
             }
+            
+            //使用path.join 跨平台路径兼容
+            var file = OS.Path.join(path,filename);
+            writeFile(file,bilibili.parse(dsArray),true);
+            // alert("成功写入字幕文件：" + file);
+            callback && callback(file);
           }catch(e){
             alert("出错了！\n"+e);
           }
@@ -130,7 +140,7 @@ var bilibili = {
       + "[V4+ Styles]" + "\n"
       + "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding" + "\n"
       + "Style: Default,微软雅黑,54,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0.00,0.00,1,1,0,2,20,20,120,0" + "\n"
-      + "Style: Danmaku,"+ this.config.font + "," + this.config.font_size + ",&H"+ this.config.alpha +"FFFFFF,&H"+ this.config.alpha +"FFFFFF,&H"+ this.config.alpha +"000000,&H"+ this.config.alpha +"000000,0,0,0,0,100,100,0.00,0.00,1,1,0,2,20,20,20,0" + "\n"
+      + "Style: Danmaku,"+ this.config.font + "," + this.config.font_size + ",&H"+ this.config.alpha +"FFFFFF,&H"+ this.config.alpha +"FFFFFF,&H"+ this.config.alpha +"000000,&H"+ this.config.alpha +"000000,"+ ~~this.config.bold +",0,0,0,100,100,0.00,0.00,1,1,0,2,20,20,20,0" + "\n"
       + "\n";
   },
 
