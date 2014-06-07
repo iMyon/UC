@@ -73,8 +73,11 @@ var bilibili = {
               }
             }
             
+            //过滤win下文件名特殊字符
+            filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
             //使用path.join 跨平台路径兼容
             var file = OS.Path.join(path,filename);
+            alert(file);
             writeFile(file,bilibili.parse(dsArray),true);
             // alert("成功写入字幕文件：" + file);
             callback && callback(file);
