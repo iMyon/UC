@@ -1,6 +1,8 @@
 #externalvideoplayer
 [ywzhaiqi/ExternalVideoPlayer](https://github.com/ywzhaiqi/userChromeJS/tree/master/ExternalVideoPlayer)的一个修改版本，在b站弹出外部播放器后自动加载弹幕。
   
+依赖脚本：[BiliAss](https://github.com/iMyon/UC/blob/master/BiliAss.myon.uc.md)，两个同时安装才能生效  
+  
 [安装脚本](https://github.com/iMyon/UC/raw/master/externalvideoplayer.myon.uc.js)
 
 
