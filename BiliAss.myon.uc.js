@@ -141,7 +141,7 @@ var bilibili = {
         alert("获取cid失败");
         throw -1;
       }
-      var xml = "http://comment.bilibili.cn/"+ matches[1] +".xml";
+      var xml = "http://comment.bilibili.com/"+ matches[1] +".xml";
       callback(xml);
     }
     //获取当前链接的弹幕xml
