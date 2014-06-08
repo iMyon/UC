@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.0
+// @version     1.1.1
 // ==/UserScript==
 
 var bilibili = {
@@ -50,7 +50,12 @@ var bilibili = {
     //获取filename
     if(!filename){
       if(gContextMenu.linkURL){
-        filename = gContextMenu.linkURL.match(/av(\d+)/)[1] + ".ass";
+        var linkNode = closestTag(gContextMenu.target,"A");
+        if(linkNode){
+          filename = linkNode.textContent + ".ass";
+        }
+        else
+          filename = gContextMenu.linkURL.match(/av(\d+)/)[1] + ".ass";
       }
       else
         filename = content.document.title + '.ass';
@@ -376,23 +381,16 @@ function addItem(option){
   }
   cacm.insertBefore(item,document.getElementById("context-sendimage"));
 }
-//获取文本所占像素宽度
-//@warn 由于不断插入删除节点效率太低暂时弃用
-//@param text 文本
-//@param size 字体大小
-//@return int
-//@ref  genDanmakuEvents getLine
-function getTextPxWidth(text,size){
-  if(!size){
-    size = bilibili.config.font_size;
+
+//获取最近一个tagName相同的父元素
+//@param node 需要获取的节点
+//@param tagName 父节点tagName
+//@ref  convert
+function closestTag(node,tagName){
+  for(let elem = node; elem;elem = elem.parentNode){
+    if(elem.tagName == tagName) return elem;
   }
-  var a = content.document.createElement('span');
-  a.innerHTML = text;
-  a.style = "visibility: block; white-space: nowrap;font-size:"+ size +"px;";
-  content.document.body.appendChild(a);
-  var length = a.offsetWidth;
-  content.document.body.removeChild(a);
-  return length;
+  return null;
 }
 
 //执行
