@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.1
+// @version     1.1.2
 // ==/UserScript==
 
 var bilibili = {
@@ -17,7 +17,7 @@ var bilibili = {
     PlayResY: 900,    //分辨率 高
     font: "微软雅黑", //字体
     bold: true,       //是否加粗
-    font_size: 30,    //字体大小
+    font_size: 35,    //字体大小
     lineCount: 50,    //弹幕最大行数
     speed: 12,         //滚动弹幕驻留时间（秒），越小越快
     fixedSpeed: 4,     //顶端/底部弹幕驻留时间（秒），越小越快
@@ -52,7 +52,7 @@ var bilibili = {
       if(gContextMenu.linkURL){
         var linkNode = closestTag(gContextMenu.target,"A");
         if(linkNode){
-          filename = linkNode.textContent + ".ass";
+          filename = linkNode.textContent.trim() + ".ass";
         }
         else
           filename = gContextMenu.linkURL.match(/av(\d+)/)[1] + ".ass";
@@ -74,7 +74,7 @@ var bilibili = {
             var ds = http.responseXML.getElementsByTagName('d');
             //将dom collection对象存入数组
             var dsArray = Array.apply(Array, ds).map(function (line) {
-              return [line.getAttribute('p').split(','), line.textContent];
+              return [line.getAttribute('p').split(','), line.innerHTML];
             })
             //递增排序
             .sort(function(a,b){
@@ -97,7 +97,9 @@ var bilibili = {
               filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
               //使用path.join 跨平台路径兼容
               var file = OS.Path.join(path,filename);
+              // var time1 = new Date();
               writeFile(file,bilibili.parse(dsArray),true);
+              // alert(new Date() - time1);
               // alert("成功写入字幕文件：" + file);
               callback && callback(file);
             }catch(e){
