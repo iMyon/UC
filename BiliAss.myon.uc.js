@@ -17,7 +17,7 @@ var bilibili = {
     PlayResY: 900,    //分辨率 高
     font: "微软雅黑", //字体
     bold: true,       //是否加粗
-    font_size: 35,    //字体大小
+    font_size: 30,    //字体大小
     lineCount: 50,    //弹幕最大行数
     speed: 12,         //滚动弹幕驻留时间（秒），越小越快
     fixedSpeed: 4,     //顶端/底部弹幕驻留时间（秒），越小越快
@@ -402,8 +402,10 @@ if (window.location == "chrome://browser/content/browser.xul") {
       //满足匹配显示右键菜单，否则隐藏
       gContextMenu.showItem("context-biliAss",
         content.location.href.match(/www\.bilibili\.tv\/video\/av\d+/) ||
+        content.location.href.match(/www\.bilibili\.com\/video\/av\d+/) ||
         content.location.href.match(/bilibili\.kankanews\.com\/video\/av\d+/) ||
         gContextMenu.linkURL.match(/www\.bilibili\.tv\/video\/av\d+/) ||
+        gContextMenu.linkURL.match(/www\.bilibili\.com\/video\/av\d+/) ||
         gContextMenu.linkURL.match(/bilibili\.kankanews\.com\/video\/av\d+/)
       );
     }, false);

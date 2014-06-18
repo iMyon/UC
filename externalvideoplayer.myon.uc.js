@@ -59,7 +59,7 @@ var contextMenuLink;
     ];
 
     var LINK_SHOW_REGEXP = new RegExp(LINK_SHOW.join("|"), "i");
-    var HOST_REGEXP = /www\.soku\.com|youku|yinyuetai|ku6|umiwi|sina|163|56|joy|v\.qq|letv|(tieba|mv|zhangmen)\.baidu|wasu|pps|kankan|funshion|tangdou|acfun\.tv|acfun\.com|www\.bilibili\.tv|v\.ifeng\.com|cntv\.cn/i;
+    var HOST_REGEXP = /www\.soku\.com|youku|yinyuetai|ku6|umiwi|sina|163|56|joy|v\.qq|letv|(tieba|mv|zhangmen)\.baidu|wasu|pps|kankan|funshion|tangdou|acfun\.tv|acfun\.com|www\.bilibili\.tv|www\.bilibili\.com|v\.ifeng\.com|cntv\.cn/i;
 
     let { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
     Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -426,6 +426,7 @@ var contextMenuLink;
             //如果满足b站播放页面则在播放器中加载弹幕
             try{
             if(this.currentUrl.match(/www\.bilibili\.tv\/video\/av\d+/) 
+            || this.currentUrl.match(/www\.bilibili\.com\/video\/av\d+/) 
             || this.currentUrl.match(/bilibili\.kankanews\.com\/video\/av\d+/)){
                 var argsSplit = args[0].split("\\");
                 var cfilename = argsSplit[argsSplit.length-1]
