@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.4
+// @version     1.1.5
 // ==/UserScript==
 
 var bilibili = {
@@ -22,6 +22,7 @@ var bilibili = {
     speed: 12,         //滚动弹幕驻留时间（秒），越小越快
     fixedSpeed: 4,     //顶端/底部弹幕驻留时间（秒），越小越快
     alpha: 140,        //透明度,256为全透明，0为不透明
+    saveFolder: "G:\\桌面"    //默认保存文件夹，为空则每次都弹出选择框
   },
   //初始化，添加右键菜单
   init: function(){
@@ -72,7 +73,6 @@ var bilibili = {
       if(!xmlUrl){
         throw -1;
       }
-  
       var http = new XMLHttpRequest();
       var url = xmlUrl;
       http.open("GET", url, true);
@@ -90,26 +90,37 @@ var bilibili = {
             });
             try{
               if(!path){
-                var filePicker = Cc["@mozilla.org/filepicker;1"]
-                  .createInstance(Ci.nsIFilePicker);
-                filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
-                if (!filePicker.show()) {
-                  path = filePicker.file.path;
-                }
-                else{
-                  throw "获取路径失败";
-                }
+                //判断配置目录是否存在，如果存在则不弹出选择框
+                var promise = OS.File.exists(bilibili.config.saveFolder);
+                promise.then(function onFulfill(aExists) {
+                  if (aExists) {
+                    path = bilibili.config.saveFolder;
+                  }
+                  else{
+                    var filePicker = Cc["@mozilla.org/filepicker;1"]
+                      .createInstance(Ci.nsIFilePicker);
+                    filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
+                    if (!filePicker.show()) {
+                      path = filePicker.file.path;
+                    }
+                    else{
+                      throw "获取路径失败";
+                    }
+                  }
+                  filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
+                  var file = OS.Path.join(path,filename);
+                  writeFile(file,bilibili.parse(dsArray),true);
+                  callback && callback(file);
+                });
+              }
+              else{
+                //过滤win下文件名特殊字符
+                filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
+                var file = OS.Path.join(path,filename);
+                writeFile(file,bilibili.parse(dsArray),true);
+                callback && callback(file);
               }
               
-              //过滤win下文件名特殊字符
-              filename = filename.replace(/\\|\:|\>|\<|\||\"|\*|\?|\//g," ");
-              //使用path.join 跨平台路径兼容
-              var file = OS.Path.join(path,filename);
-              // var time1 = new Date();
-              writeFile(file,bilibili.parse(dsArray),true);
-              // alert(new Date() - time1);
-              // alert("成功写入字幕文件：" + file);
-              callback && callback(file);
             }catch(e){
               alert("出错了！\n"+e);
             }
@@ -164,20 +175,23 @@ var bilibili = {
       if(matches){
         var aid = matches[1];
         var http = new XMLHttpRequest();
-        var url = "http://www.bilibili.tv/widget/getPageList?aid=" + aid;
+        var url = "http://www.bilibili.com/widget/getPageList?aid=" + aid;
         http.open("GET", url, true);
         http.onreadystatechange = function() {
           if(http.readyState == 4 && http.status == 200) {
             var jsonA = JSON.parse(http.responseText);
             if(jsonA.length){
               var cid = jsonA[0].cid;
-              var xml = "http://comment.bilibili.cn/"+ cid +".xml";
+              var xml = "http://comment.bilibili.com/"+ cid +".xml";
               callback(xml);
             }
             else{
               alert("获取cid失败");
               throw -1;
             }
+          }
+          else if(http.readyState == 4) {
+            alert("获取cid失败，请尝试到视频页面转换");
           }
         }
         http.send();
@@ -200,7 +214,7 @@ var bilibili = {
         }catch(e){
           //使用b站接口获取title
           var http1 = new XMLHttpRequest();
-          url = "http://api.bilibili.tv/view?type=json&appkey=03fc8eb101b091fb&id=" + url.match(/av(\d+)/)[1];
+          url = "http://api.bilibili.com/view?type=json&appkey=03fc8eb101b091fb&id=" + url.match(/av(\d+)/)[1];
           http1.open("GET", url, true);
           http1.onreadystatechange = function(){
             if(http1.readyState == 4 && http1.status == 200) {
