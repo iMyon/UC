@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.2
+// @version     1.1.3
 // ==/UserScript==
 
 var bilibili = {
@@ -50,17 +50,22 @@ var bilibili = {
     //获取filename
     if(!filename){
       if(gContextMenu.linkURL){
-        var linkNode = closestTag(gContextMenu.target,"A");
-        if(linkNode){
-          filename = linkNode.textContent.trim() + ".ass";
+        //请求网页获取标题
+        try{
+          this.getTitle(av, function(title){
+            filename = title + '.ass';
+            bilibili.getXmlUrl(xmlCallback,av);
+          });
+        }catch(e){
+          alert(e);
         }
-        else
-          filename = gContextMenu.linkURL.match(/av(\d+)/)[1] + ".ass";
       }
-      else
-        filename = content.document.title + '.ass';
+      else{
+        filename = content.document.querySelector(".info h2").title + '.ass';
+        this.getXmlUrl(xmlCallback,av);
+      }
     }
-    this.getXmlUrl(function(xmlUrl){
+    function xmlCallback(xmlUrl){
       if(!xmlUrl){
         throw -1;
       }
@@ -108,8 +113,7 @@ var bilibili = {
           }
       };
       http.send();
-    },av);
-      
+    }      
   },
   //获取xml弹幕网址
   //@param url  视频网址，留空的话取当前网页链接
@@ -176,6 +180,24 @@ var bilibili = {
         http.send();
       }
     }
+  },
+  //获取链接所对应网页的title
+  //param url   链接网址
+  //param callback  回调函数（带一个title参数）
+  getTitle: function(url,callback){
+    var http = new XMLHttpRequest();
+    http.open("GET", url, true);
+    http.responseType = "document";
+    http.onreadystatechange = function() {
+      if(http.readyState == 4 && http.status == 200) {
+        try{
+          callback(http.response.querySelector(".info h2").title);
+        }catch(e){
+          alert(e);
+        }
+      }
+    }
+    http.send();
   },
   //转换弹幕 获取字幕文件的最终文本
   //@ref convert
@@ -382,17 +404,6 @@ function addItem(option){
     item.setAttribute(key, option[key]);
   }
   cacm.insertBefore(item,document.getElementById("context-sendimage"));
-}
-
-//获取最近一个tagName相同的父元素
-//@param node 需要获取的节点
-//@param tagName 父节点tagName
-//@ref  convert
-function closestTag(node,tagName){
-  for(let elem = node; elem;elem = elem.parentNode){
-    if(elem.tagName == tagName) return elem;
-  }
-  return null;
 }
 
 //执行
