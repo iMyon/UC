@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.3
+// @version     1.1.4
 // ==/UserScript==
 
 var bilibili = {
@@ -64,6 +64,9 @@ var bilibili = {
         filename = content.document.querySelector(".info h2").title + '.ass';
         this.getXmlUrl(xmlCallback,av);
       }
+    }
+    else{
+      this.getXmlUrl(xmlCallback,av);
     }
     function xmlCallback(xmlUrl){
       if(!xmlUrl){
@@ -191,9 +194,26 @@ var bilibili = {
     http.onreadystatechange = function() {
       if(http.readyState == 4 && http.status == 200) {
         try{
-          callback(http.response.querySelector(".info h2").title);
+          //网页获取title
+          let title = http.response.querySelector(".info h2").title;
+          callback(title);
         }catch(e){
-          alert(e);
+          //使用b站接口获取title
+          var http1 = new XMLHttpRequest();
+          url = "http://api.bilibili.tv/view?type=json&appkey=03fc8eb101b091fb&id=" + url.match(/av(\d+)/)[1];
+          http1.open("GET", url, true);
+          http1.onreadystatechange = function(){
+            if(http1.readyState == 4 && http1.status == 200) {
+              try{
+                callback(JSON.parse(http1.responseText).title);
+              }
+              catch(e){
+                alert("获取title失败，随机生成文件名");
+                callback(new Date());
+              }
+            }
+          }
+          http1.send();
         }
       }
     }
