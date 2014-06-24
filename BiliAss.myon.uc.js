@@ -213,21 +213,31 @@ var bilibili = {
           callback(title);
         }catch(e){
           //使用b站接口获取title
-          var http1 = new XMLHttpRequest();
-          url = "http://api.bilibili.com/view?type=json&appkey=03fc8eb101b091fb&id=" + url.match(/av(\d+)/)[1];
-          http1.open("GET", url, true);
-          http1.onreadystatechange = function(){
-            if(http1.readyState == 4 && http1.status == 200) {
-              try{
-                callback(JSON.parse(http1.responseText).title);
-              }
-              catch(e){
-                alert("获取title失败，随机生成文件名");
-                callback(new Date());
-              }
-            }
-          }
-          http1.send();
+          bilibili.getTitleByApi(url.match(/av(\d+)/)[1],callback);
+        }
+      }
+      else if(http.readyState == 4 && http.status != 200){
+        bilibili.getTitleByApi(url.match(/av(\d+)/)[1],callback);
+      }
+    }
+    http.send();
+  },
+  //从api获取av的标题
+  //@param av       av号
+  //@param callback 回调函数
+  //@ref   getTitle
+  getTitleByApi: function(av,callback){
+    var http = new XMLHttpRequest();
+    var url = "http://api.bilibili.com/view?type=json&appkey=03fc8eb101b091fb&id=" + av;
+    http.open("GET", url, true);
+    http.onreadystatechange = function(){
+      if(http.readyState == 4 && http.status == 200) {
+        try{
+          callback(JSON.parse(http.responseText).title);
+        }
+        catch(e){
+          alert("获取title失败，随机生成文件名");
+          callback(new Date());
         }
       }
     }
