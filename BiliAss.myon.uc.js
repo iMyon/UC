@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.5
+// @version     1.1.6
 // ==/UserScript==
 
 var bilibili = {
@@ -163,39 +163,42 @@ var bilibili = {
         }
       }
       if(!matches){
-        alert("获取cid失败");
-        throw -1;
+        // alert("获取cid失败");
+        // throw -1;
       }
-      var xml = "http://comment.bilibili.com/"+ matches[1] +".xml";
-      callback(xml);
+      else{
+        var xml = "http://comment.bilibili.com/"+ matches[1] +".xml";
+        callback(xml);
+        return;
+      }
+      
     }
-    //获取当前链接的弹幕xml
-    else{
-      var matches = url.match(/av(\d+)/);
-      if(matches){
-        var aid = matches[1];
-        var http = new XMLHttpRequest();
-        var url = "http://www.bilibili.com/widget/getPageList?aid=" + aid;
-        http.open("GET", url, true);
-        http.onreadystatechange = function() {
-          if(http.readyState == 4 && http.status == 200) {
-            var jsonA = JSON.parse(http.responseText);
-            if(jsonA.length){
-              var cid = jsonA[0].cid;
-              var xml = "http://comment.bilibili.com/"+ cid +".xml";
-              callback(xml);
-            }
-            else{
-              alert("获取cid失败");
-              throw -1;
-            }
+    url = url ? url : content.location.href;
+    //api获取xml
+    var matches = url.match(/av(\d+)/);
+    if(matches){
+      var aid = matches[1];
+      var http = new XMLHttpRequest();
+      var url = "http://www.bilibili.com/widget/getPageList?aid=" + aid;
+      http.open("GET", url, true);
+      http.onreadystatechange = function() {
+        if(http.readyState == 4 && http.status == 200) {
+          var jsonA = JSON.parse(http.responseText);
+          if(jsonA.length){
+            var cid = jsonA[0].cid;
+            var xml = "http://comment.bilibili.com/"+ cid +".xml";
+            callback(xml);
           }
-          else if(http.readyState == 4) {
-            alert("获取cid失败，请尝试到视频页面转换");
+          else{
+            alert("获取cid失败");
+            throw -1;
           }
         }
-        http.send();
+        else if(http.readyState == 4) {
+          alert("获取cid失败，请尝试到视频页面转换");
+        }
       }
+      http.send();
     }
   },
   //获取链接所对应网页的title
