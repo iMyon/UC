@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.1.6
+// @version     1.2.0
 // ==/UserScript==
 
 var bilibili = {
@@ -32,30 +32,45 @@ var bilibili = {
       this.config.lineCount = ~~(this.config.PlayResY/this.config.font_size);
     }
     //添加菜单
-    addItem({
+    var cacm = document.getElementById("contentAreaContextMenu");
+    if (!cacm) return;
+    var menu = $Element({
       id: "context-biliAss",
       label: "转换弹幕",
       oncommand: "bilibili.convert();"
+    },"menu");
+    var menupopup = $Element({},"menupopup");
+    var m_convert = $Element({
+      label: "当前弹幕",
+      oncommand: "bilibili.convert();"
     });
+    var m_converts = $Element({
+      label: "合集弹幕",
+      oncommand: "bilibili.converts();"
+    });
+    menupopup.appendChild(m_convert);
+    menupopup.appendChild(m_converts);
+    menu.appendChild(menupopup);
+    cacm.insertBefore(menu,document.getElementById("context-sendimage"));
   },
   //转换函数
   //成功 写入文件
   //失败 抛出异常，弹框提醒
-  //@param  av    视频链接  如果不填则自动获取
+  //@param  uc    视频链接或者cid  如果不填则自动获取
   //@param  path 保存路径，如果不填则弹窗选择
   //@param  filename  文件名   如果不填则取网页标题
   //@param  回调函数
-  //@ref init
-  convert: function(av,path,filename,callback){
-    if(!av) av = gContextMenu.linkURL;
+  //@ref init, converts
+  convert: function(uc,path,filename,callback){
+    if(!uc) uc = gContextMenu.linkURL;
     //获取filename
     if(!filename){
       if(gContextMenu.linkURL){
         //请求网页获取标题
         try{
-          this.getTitle(av, function(title){
+          this.getTitle(uc, function(title){
             filename = title + '.ass';
-            bilibili.getXmlUrl(xmlCallback,av);
+            bilibili.getXmlUrl(xmlCallback,uc);
           });
         }catch(e){
           alert(e);
@@ -63,11 +78,11 @@ var bilibili = {
       }
       else{
         filename = content.document.querySelector(".info h2").title + '.ass';
-        this.getXmlUrl(xmlCallback,av);
+        this.getXmlUrl(xmlCallback,uc);
       }
     }
     else{
-      this.getXmlUrl(xmlCallback,av);
+      this.getXmlUrl(xmlCallback,uc);
     }
     function xmlCallback(xmlUrl){
       if(!xmlUrl){
@@ -129,12 +144,61 @@ var bilibili = {
       http.send();
     }      
   },
+  //转换合集函数
+  //@param url 视频链接
+  //@ref init
+  converts : function(url){
+    if(!url) url = gContextMenu.linkURL;
+
+    var matches = url.match(/av(\d+)/);
+    if(matches){
+      var aid = matches[1];
+      //获取列表并调用convert转换全部
+      var http = new XMLHttpRequest();
+      var url = "http://www.bilibili.com/widget/getPageList?aid=" + aid;
+      http.open("GET", url, true);
+      http.onreadystatechange = function() {
+        if(http.readyState == 4 && http.status == 200) {
+          var jsonA = JSON.parse(http.responseText);
+          if(jsonA.length){
+            //选择路径
+            var filePicker = Cc["@mozilla.org/filepicker;1"]
+              .createInstance(Ci.nsIFilePicker);
+            filePicker.init(window, "请选择要保存字幕的文件夹", filePicker.modeGetFolder);
+            if (!filePicker.show()) {
+              var path = filePicker.file.path;
+            }
+            else{
+              throw "获取路径失败";
+            }
+            for(var i=0; i<jsonA.length; i++){
+              bilibili.convert(jsonA[i].cid, path, jsonA[i].page + ".ass");
+            }
+          }
+          else{
+            alert("获取cid失败");
+            throw -1;
+          }
+        }
+        else if(http.readyState == 4) {
+          alert("获取cid失败，请尝试到视频页面转换");
+        }
+      }
+      http.send();
+    }
+  },
   //获取xml弹幕网址
-  //@param url  视频网址，留空的话取当前网页链接
+  //@param uc  视频网址或cid，留空的话取当前网页链接
   //@param callback 获取xml后的回调函数
-  getXmlUrl: function(callback,url){
+  getXmlUrl: function(callback,uc){
+    //判断传入的是否是cid
+    if(String(uc).match(/^\d+$/)){
+      var xml = "http://comment.bilibili.com/"+ uc +".xml";
+      callback(xml);
+      return;
+    }
     //获取当前窗口的xml
-    if(!url){
+    if(!uc){
       //先从window获取，如果没有（会员）则找网页节点
       var a  = null;
       var matches = null;
@@ -173,14 +237,14 @@ var bilibili = {
       }
       
     }
-    url = url ? url : content.location.href;
+    uc = uc ? uc : content.location.href;
     //api获取xml
-    var matches = url.match(/av(\d+)/);
+    var matches = uc.match(/av(\d+)/);
     if(matches){
       var aid = matches[1];
       var http = new XMLHttpRequest();
-      var url = "http://www.bilibili.com/widget/getPageList?aid=" + aid;
-      http.open("GET", url, true);
+      var uc = "http://www.bilibili.com/widget/getPageList?aid=" + aid;
+      http.open("GET", uc, true);
       http.onreadystatechange = function() {
         if(http.readyState == 4 && http.status == 200) {
           var jsonA = JSON.parse(http.responseText);
@@ -216,22 +280,23 @@ var bilibili = {
           callback(title);
         }catch(e){
           //使用b站接口获取title
-          bilibili.getTitleByApi(url.match(/av(\d+)/)[1],callback);
+          bilibili.getTitleByApi(url.match(/av(\d+)/)[1], url.match(/index_(\d+)/) ? url.match(/index_(\d+)/)[1] : 1, callback);
         }
       }
       else if(http.readyState == 4 && http.status != 200){
-        bilibili.getTitleByApi(url.match(/av(\d+)/)[1],callback);
+        bilibili.getTitleByApi(url.match(/av(\d+)/)[1], url.match(/index_(\d+)/) ? url.match(/index_(\d+)/)[1] : 1, callback);
       }
     }
     http.send();
   },
   //从api获取av的标题
   //@param av       av号
+  //@param page     页数
   //@param callback 回调函数
   //@ref   getTitle
-  getTitleByApi: function(av,callback){
+  getTitleByApi: function(av, page = 1, callback){
     var http = new XMLHttpRequest();
-    var url = "http://api.bilibili.com/view?type=json&appkey=03fc8eb101b091fb&id=" + av;
+    var url = "http://api.bilibili.com/view?type=json&appkey=03fc8eb101b091fb&id=" + av + "&page=" + page;
     http.open("GET", url, true);
     http.onreadystatechange = function(){
       if(http.readyState == 4 && http.status == 200) {
@@ -442,15 +507,15 @@ function parseUtf8(str) {
   return converter.ConvertFromUnicode(str);
 }
 
-//添加到右键菜单
-function addItem(option){
-  var cacm = document.getElementById("contentAreaContextMenu");
-    if (!cacm) return;
-  var item = document.createElement("menuitem");
-  for(let key in option){
+//生成菜单元素
+//@param option  元素属性
+//@param tagName 元素类型
+function $Element(option,tagName = "menuitem"){
+  var item = document.createElement(tagName);
+  for(var key in option){
     item.setAttribute(key, option[key]);
   }
-  cacm.insertBefore(item,document.getElementById("context-sendimage"));
+  return item;
 }
 
 //执行
@@ -459,11 +524,9 @@ if (window.location == "chrome://browser/content/browser.xul") {
     document.getElementById("contentAreaContextMenu").addEventListener("popupshowing", function () {
       //满足匹配显示右键菜单，否则隐藏
       gContextMenu.showItem("context-biliAss",
-        content.location.href.match(/www\.bilibili\.tv\/video\/av\d+/) ||
-        content.location.href.match(/www\.bilibili\.com\/video\/av\d+/) ||
+        content.location.href.match(/www\.bilibili\.(tv|com)\/video\/av\d+/) ||
         content.location.href.match(/bilibili\.kankanews\.com\/video\/av\d+/) ||
-        gContextMenu.linkURL.match(/www\.bilibili\.tv\/video\/av\d+/) ||
-        gContextMenu.linkURL.match(/www\.bilibili\.com\/video\/av\d+/) ||
+        gContextMenu.linkURL.match(/www\.bilibili\.(tv|com)\/video\/av\d+/) ||
         gContextMenu.linkURL.match(/bilibili\.kankanews\.com\/video\/av\d+/)
       );
     }, false);
