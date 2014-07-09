@@ -149,6 +149,7 @@ var bilibili = {
   //@ref init
   converts : function(url){
     if(!url) url = gContextMenu.linkURL;
+    if(!url) url = content.location.href;
 
     var matches = url.match(/av(\d+)/);
     if(matches){
