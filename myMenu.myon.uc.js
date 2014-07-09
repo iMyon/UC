@@ -1,13 +1,14 @@
-// ==UserScript==
+﻿// ==UserScript==
+// @charset     UTF-8
 // @name        myMenu
 // @namespace   Myon
 // @description 右键菜单增强自用版
-// @include     *
+// @include     chrome://browser/content/browser.xul
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/myMenu.myon.uc.js
 // @homePage    https://github.com/iMyon/UC/blob/master/myMenu.myon.uc.js   
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     0.2
+// @version     0.2.1
 // ==/UserScript==
 
 //规则
@@ -25,6 +26,12 @@ var rules = [
       label: "pixiv"
     },
     url: "http://www.pixiv.net/member_illust.php?mode=medium&illust_id={id}"
+  },
+  {
+    attr:{
+      label: "nico"
+    },
+    url: "http://www.nicovideo.jp/watch/sm{id}"
   }
 ];
 
@@ -60,11 +67,14 @@ var menus = {
 //github短网址
 var githubShortUrl = {
   init: function(){
-    addItem({
+    var cacm = document.getElementById("contentAreaContextMenu");
+    if (!cacm) return;
+    var e = $Element({
       id: "context-githubShortUrl",
       label: "copy shortUrl",
       oncommand: "githubShortUrl.copy(event);"
     });
+    cacm.insertBefore(e,document.getElementById("context-sendimage"));
   },
   //请求git.io获取短网址并复制
   copy: function(e){
@@ -105,7 +115,7 @@ if (window.location == "chrome://browser/content/browser.xul") {
       var c = content.getSelection() + "";
       //满足匹配显示右键菜单，否则隐藏
       gContextMenu.showItem("myMenu", gContextMenu.isTextSelected 
-        && (c.match(/^\d+$/) || c.match(/^av\d+$/)));
+        && c.match(/^(\s*)(av|sm)?\d+(\s*)$/) );
       gContextMenu.showItem("context-githubShortUrl", content.location.href.match(/github.com/));
     }, false);
 }
