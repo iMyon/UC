@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.2.2
+// @version     1.3
 // ==/UserScript==
 
 var bilibili = {
@@ -327,7 +327,8 @@ var bilibili = {
   //@ref parse
   //@return string
   genDanmakuHeader: function(){
-    return "[Script Info]" + "\n"
+    return "\ufeff"
+      + "[Script Info]" + "\n"
       + "ScriptType: v4.00+" + "\n"
       + "Collisions: Normal" + "\n"
       + "PlayResX: " + this.config.PlayResX + "\n"
