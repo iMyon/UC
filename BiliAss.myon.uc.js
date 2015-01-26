@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.2.1
+// @version     1.3
 // ==/UserScript==
 
 var bilibili = {
@@ -38,16 +38,15 @@ var bilibili = {
       id: "context-biliAss",
       class: "menu-iconic",
       image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACt0lEQVQ4jY3STUtqbRTG8ftjlNI3EISoWZMwNYRq0CaJJtGgwCizl4mDEF/KJLaiEQkmNdoREjSJoEmhA8mikMCJDhIaFGzcKZa7jP8ZxHl8OAfOOResyeK+f6wFS4hfoigKBoOBw8ND/t83Go2YTCZ+ff9burq6qFQq+P1+VFVFCCFsNhs+n49kMkksFvszMjU1xfHxMeVymenpaSqVCna7HV3X8fv9f59ACCEmJydRFAWn00k6nSYYDBIIBP7t888sLCwwNzeHx+NhZWWFdDr9ZyCTyWC1Wunv78dsNjMxMYHX6yWRSLC9vU0kEsHtdmOxWHA4HEiS1AGz2Szd3d3Y7XYURSGXy5HL5cjn89zd3XF9fU2hUOD09BSv18vi4iIul4v5+flvRJZlTCYT5+fnfH5+UiqV+Pj4AEDTNNrtNre3t1SrVUqlEsFg8L8SQggRj8cZGxvj4eGBy8tLTCYT+XweTdN4e3vj+fmZnp4eNjY2eH9/x+l0EgqFSCaT30AqlWJgYIByuczLywsXFxfous7X1xeNRoNms0k2m6VardJqtRgaGmJpaYlUKvUNxGIxrFYrxWKRdrtNrVbj6emJ+/t7VFWlWCzSbDZptVo0Gg3MZjNra2udCWRZZnR0lEKhQK1Wo91uk0gkMBgMDA8P43A4qNVq6LqOpmkYjUY8Hk8HiMfj2Gw2MpkMuq5Tr9ep1+sUi0Wurq7QNI3X11darRZnZ2f09vayurrK3t5eZwWLxYLP52Nzc5NAIMD+/j5HR0ccHBywu7tLOBzG7XbT19eHy+VCVVV2dna+gcfHRwYHBwmHwwSDQWZnZ5EkCYvFwsjICJIkMT4+jiRJzMzMEA6HOTk5YXl5uXNMNzc3rK+vk0wmiUajRCIR/H4/oVCIra0tZFkmHo8TjUaRZZlEIoEQQvwAsj8XY0w5f7sAAAAASUVORK5CYII=",
-      label: "转换弹幕",
-      oncommand: "bilibili.convert();"
+      label: "转换弹幕"
     },"menu");
     var menupopup = $Element({},"menupopup");
     var m_convert = $Element({
-      label: "当前弹幕",
+      label: "当前视频",
       oncommand: "bilibili.convert();"
     });
     var m_converts = $Element({
-      label: "合集弹幕",
+      label: "合集视频",
       oncommand: "bilibili.converts();"
     });
     menupopup.appendChild(m_convert);
@@ -330,7 +329,8 @@ var bilibili = {
   //@ref parse
   //@return string
   genDanmakuHeader: function(){
-    return "[Script Info]" + "\n"
+    return "\ufeff"
+      + "[Script Info]" + "\n"
       + "ScriptType: v4.00+" + "\n"
       + "Collisions: Normal" + "\n"
       + "PlayResX: " + this.config.PlayResX + "\n"
