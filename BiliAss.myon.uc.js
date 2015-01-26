@@ -225,8 +225,10 @@ var bilibili = {
         //非会员视频
         else{
           bofqi = content.document.querySelector("#bofqi iframe");
-          a = bofqi.getAttribute("src");
-          matches = a.match(/cid=(\d+)/);
+          if(bofqi){
+            a = bofqi.getAttribute("src");
+            matches = a.match(/cid=(\d+)/);
+          }
         }
       }
       if(!matches){
