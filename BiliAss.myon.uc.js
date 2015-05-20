@@ -7,7 +7,7 @@
 // @author      Myon<myon.cn@gmail.com>
 // @downloadURL https://github.com/iMyon/UC/raw/master/BiliAss.myon.uc.js
 // @icon        http://tb.himg.baidu.com/sys/portrait/item/c339b7e2d3a1b5c4c3a8d726
-// @version     1.3
+// @version     1.3.1
 // ==/UserScript==
 
 var bilibili = {
@@ -22,7 +22,7 @@ var bilibili = {
     speed: 12,         //滚动弹幕驻留时间（秒），越小越快
     fixedSpeed: 4,     //顶端/底部弹幕驻留时间（秒），越小越快
     alpha: 140,        //透明度,256为全透明，0为不透明
-    saveFolder: "G:\\桌面"    //默认保存文件夹，为空则每次都弹出选择框
+    saveFolder: ""    //默认保存文件夹，为空则每次都弹出选择框
   },
   //初始化，添加右键菜单
   init: function(){
@@ -78,7 +78,7 @@ var bilibili = {
         }
       }
       else{
-        filename = content.document.querySelector(".info h2").title + '.ass';
+        filename = content.document.querySelector(".info h1,.info h2").title + '.ass';
         this.getXmlUrl(xmlCallback,uc);
       }
     }
